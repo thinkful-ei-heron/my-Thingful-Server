@@ -8,9 +8,6 @@ function makeAuthHeader(user){
   return `Basic ${token}`;
 }
 
-//.set('Authorization', makeAuthHeader(testUsers[0]))
-
-
 describe('Reviews Endpoints', function() {
   let db
 

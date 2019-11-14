@@ -30,13 +30,7 @@ describe('Things Endpoints', function() {
   
   describe(`Protected Endpoints`, () => {
 
-    beforeEach(`Insert things`, () => 
-      helpers.seedThingsTables(
-        db,
-        testUsers,
-        testThings
-      )
-    );
+    
 
     const protectedEndpoints = [
       {
@@ -52,6 +46,36 @@ describe('Things Endpoints', function() {
     protectedEndpoints.forEach(endpoint => {
       
     describe(endpoint.name, () => {
+
+      context(`Given no things`, () => {
+        beforeEach('insert users not things', () => {
+          return helpers.seedUsers(db, testUsers);
+        })
+
+        it(`responds with 404`, () => {
+          const thingId = 12346;
+          return supertest(app)
+            .get(`/api/things/${thingId}`)
+            .set('Authorization', makeAuthHeader(testUsers[0]))
+            .expect(404, { error: `Thing doesn't exist` })
+        })
+      });
+  
+      context('Given there are things in the database', () => {
+
+        beforeEach(`Insert things`, () => 
+        helpers.seedThingsTables(
+          db,
+          testUsers,
+          testThings
+        )
+      );
+      // beforeEach('Insert Users', () => {
+      //   helpers.seedUsers(
+      //     db, 
+      //     testUsers
+      //   )
+      // })
         it(`responds with 401 'Missing basic token' when no basic token`, () => {
           return supertest(app)
             .get(endpoint.path)
@@ -64,7 +88,6 @@ describe('Things Endpoints', function() {
             .set('Authorization', makeAuthHeader(userNoCreds))
             .expect(401, { error: `Unauthorized request.`})
           })
-
 
         it(`responds 401 'Unauthorized request' when invalid user`, () => {
           const userInvalidCreds = { user_name: 'user-not', password: 'password' }
@@ -82,26 +105,12 @@ describe('Things Endpoints', function() {
                 .expect(401, { error: `Unauthorized request` })
               })
 
-
-
-      context(`Given no things`, () => {
-        it(`responds with 404`, () => {
-          const thingId = 12345
-          return supertest(app)
-            .get(`/api/things/${thingId}`)
-            .set('Authorization', makeAuthHeader(testUsers[0]))
-            .expect(404, { error: `Thing doesn't exist` })
-        })
-      })
-  
-      context('Given there are things in the database', () => {
-
         it('responds with 200 and the specified thing', () => {
           const thingId = 2
           const expectedThing = helpers.makeExpectedThing(
             testUsers,
             testThings[thingId - 1],
-            testReviews,
+            testReviews
           )
   
           return supertest(app)
@@ -113,6 +122,7 @@ describe('Things Endpoints', function() {
   
       context(`Given an XSS attack thing`, () => {
         const testUser = helpers.makeUsersArray()[1];
+        console.log('125', testUser);
         const {
           maliciousThing,
           expectedThing,
@@ -121,15 +131,15 @@ describe('Things Endpoints', function() {
         beforeEach('insert malicious thing', () => {
           return helpers.seedMaliciousThing(
             db,
-            testUser[1],
-            maliciousThing,
+            testUser,
+            maliciousThing
           )
         })
   
         it('removes XSS attack content', () => {
           return supertest(app)
             .get(`/api/things/${maliciousThing.id}`)
-            .set('Authorization', makeAuthHeader(testUsers[0]))
+            .set('Authorization', makeAuthHeader(testUsers[1]))
             .expect(200)
             .expect(res => {
               expect(res.body.title).to.eql(expectedThing.title)
@@ -140,7 +150,12 @@ describe('Things Endpoints', function() {
     })
   
     describe(`GET /api/things/:thing_id/reviews`, () => {
+
+
       context(`Given no things`, () => {
+        beforeEach('insert users not things', () => {
+          return helpers.seedUsers(db, testUsers);
+        })
         it(`responds with 404`, () => {
           const thingId = 123456
           return supertest(app)
@@ -151,6 +166,13 @@ describe('Things Endpoints', function() {
       })
   
       context('Given there are reviews for thing in the database', () => {
+        beforeEach('insert things, users, and reviews', () =>{
+          return helpers.seedThingsTables(
+            db,
+            testUsers,
+            testThings,
+            testReviews)
+        })
 
         it('responds with 200 and the specified reviews', () => {
           const thingId = 1
