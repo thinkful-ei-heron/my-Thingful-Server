@@ -1,6 +1,15 @@
+/* eslint-disable semi */
 const knex = require('knex')
 const app = require('../src/app')
 const helpers = require('./test-helpers')
+
+function makeAuthHeader(user){
+  const token = Buffer.from(`${user.user_name}:${user.password}`).toString('base64');
+  return `Basic ${token}`;
+}
+
+//.set('Authorization', makeAuthHeader(testUsers[0]))
+
 
 describe('Reviews Endpoints', function() {
   let db
@@ -24,12 +33,13 @@ describe('Reviews Endpoints', function() {
 
   afterEach('cleanup', () => helpers.cleanTables(db))
 
+
   describe(`POST /api/reviews`, () => {
     beforeEach('insert things', () =>
       helpers.seedThingsTables(
         db,
         testUsers,
-        testThings,
+        testThings
       )
     )
 
@@ -45,6 +55,7 @@ describe('Reviews Endpoints', function() {
       }
       return supertest(app)
         .post('/api/reviews')
+        .set('Authorization', makeAuthHeader(testUsers[0]))
         .send(newReview)
         .expect(201)
         .expect(res => {
@@ -93,6 +104,7 @@ describe('Reviews Endpoints', function() {
 
         return supertest(app)
           .post('/api/reviews')
+          .set('Authorization', makeAuthHeader(testUsers[0]))
           .send(newReview)
           .expect(400, {
             error: `Missing '${field}' in request body`,
